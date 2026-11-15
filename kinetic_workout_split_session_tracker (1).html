@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KINETIC — Workout Split Tracker & Planner</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for Rest Timer Audio Alerts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        obsidian: '#09090b',
+                        surface: '#121215',
+                        surfaceLight: '#1c1c21',
+                        lime: {
+                            DEFAULT: '#ccff00',
+                            hover: '#b8e600',
+                            dim: 'rgba(204, 255, 0, 0.12)'
+                        },
+                        electric: {
+                            DEFAULT: '#38bdf8',
+                            dim: 'rgba(56, 189, 248, 0.12)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-obsidian text-zinc-100 font-sans antialiased selection:bg-lime selection:text-obsidian min-h-screen flex flex-col pb-24">
+
+    <!-- Top Navigation & Quick Stats Header -->
+    <header class="sticky top-0 z-30 bg-obsidian/85 backdrop-blur-md border-b border-zinc-800/80 px-4 py-3 sm:px-6">
+        <div class="max-w-4xl mx-auto flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-lime flex items-center justify-center text-obsidian font-extrabold text-lg tracking-tighter shadow-lg shadow-lime/20">
+                        K
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-lg tracking-tight leading-none text-white">KINETIC</h1>
+                        <p class="text-[11px] font-medium text-zinc-400 tracking-wider uppercase mt-0.5">PPL Split & Tracker</p>
+                    </div>
+                </div>
+
+                <!-- View Switcher & Reset -->
+                <div class="flex items-center gap-2">
+                    <button id="btn-reset-demo" title="Reset Demo Data" class="p-2 text-zinc-400 hover:text-white bg-surface hover:bg-surfaceLight border border-zinc-800 rounded-xl transition text-xs font-medium flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        <span class="hidden sm:inline">Reset Split</span>
+                    </button>
+                    <button id="btn-open-timer" class="p-2 px-3 bg-surface hover:bg-surfaceLight border border-zinc-800 rounded-xl text-electric font-mono text-xs font-bold flex items-center gap-1.5 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span id="header-timer-badge">Timer</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Progress Telemetry Bar -->
+            <div class="grid grid-cols-3 gap-2 sm:gap-4 pt-1">
+                <div class="bg-surface border border-zinc-800/80 rounded-xl p-2.5 sm:px-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-400">Workouts</p>
+                        <p id="stat-completed" class="font-mono text-base sm:text-xl font-bold text-white mt-0.5">0 / 6</p>
+                    </div>
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-lime-dim text-lime flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                </div>
+
+                <div class="bg-surface border border-zinc-800/80 rounded-xl p-2.5 sm:px-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-400">Volume (lbs)</p>
+                        <p id="stat-volume" class="font-mono text-base sm:text-xl font-bold text-white mt-0.5">0</p>
+                    </div>
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-electric-dim text-electric flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                </div>
+
+                <div class="bg-surface border border-zinc-800/80 rounded-xl p-2.5 sm:px-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-400">Streak</p>
+                        <p id="stat-streak" class="font-mono text-base sm:text-xl font-bold text-lime mt-0.5">1 Day</p>
+                    </div>
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 pt-5">
+        
+        <!-- Horizontal Day Selector Strip (Mobile-Friendly) -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-2.5">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Weekly Split Schedule</h2>
+                <span class="text-xs text-zinc-500">Tap day to train or edit</span>
+            </div>
+            <div id="day-strip" class="grid grid-cols-7 gap-1.5 sm:gap-2.5">
+                <!-- Day pills injected by JS -->
+            </div>
+        </div>
+
+        <!-- Active Day Header & Mode Toggle -->
+        <div class="bg-surface border border-zinc-800 rounded-2xl p-4 sm:p-5 mb-5 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <span id="active-day-label" class="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-lime-dim text-lime">MONDAY</span>
+                        <span id="active-day-status" class="text-xs font-medium text-zinc-400">In Progress</span>
+                    </div>
+                    <!-- Editable Split Title -->
+                    <div class="flex items-center gap-2 mt-2">
+                        <input id="input-split-title" type="text" value="Push A (Chest, Shoulders, Triceps)" 
+                               class="bg-transparent text-xl sm:text-2xl font-extrabold text-white tracking-tight focus:outline-none focus:border-b-2 focus:border-lime w-full transition"
+                               aria-label="Workout Split Title">
+                        <button id="btn-focus-title" class="text-zinc-500 hover:text-zinc-300 p-1.5 rounded-lg" title="Edit Workout Name">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="flex items-center gap-2 self-start sm:self-center">
+                    <button id="btn-toggle-rest-day" class="px-3 py-2 rounded-xl text-xs font-semibold border border-zinc-700 bg-surfaceLight hover:bg-zinc-800 text-zinc-300 transition">
+                        Mark Rest Day
+                    </button>
+                    <button id="btn-complete-workout" class="px-4 py-2 rounded-xl text-xs font-bold bg-lime hover:bg-lime-hover text-obsidian shadow-lg shadow-lime/15 transition flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                        <span>Finish Session</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exercise List Container -->
+        <div id="exercises-container" class="space-y-4">
+            <!-- Exercise cards injected via JS -->
+        </div>
+
+        <!-- Add Exercise Button -->
+        <div id="add-exercise-wrapper" class="mt-5">
+            <button id="btn-open-add-modal" class="w-full py-3.5 rounded-2xl border-2 border-dashed border-zinc-800 hover:border-lime/60 bg-surface/50 hover:bg-surface text-zinc-300 hover:text-lime font-semibold text-sm flex items-center justify-center gap-2 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>Add Exercise to Day</span>
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Floating Built-in Rest Timer Bar (Sticky Bottom) -->
+    <div id="rest-timer-drawer" class="fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur-lg border-t border-zinc-800 px-4 py-3 transition-transform duration-300">
+        <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div id="timer-pulse-dot" class="w-2.5 h-2.5 rounded-full bg-zinc-600"></div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Rest Timer</p>
+                    <p id="timer-display" class="font-mono text-2xl font-bold text-white leading-none mt-0.5">01:30</p>
+                </div>
+            </div>
+
+            <!-- Preset Durations -->
+            <div class="flex items-center gap-1.5">
+                <button data-seconds="60" class="timer-preset px-2.5 py-1.5 rounded-lg bg-surfaceLight hover:bg-zinc-700 text-xs font-mono font-semibold text-zinc-300 transition">60s</button>
+                <button data-seconds="90" class="timer-preset px-2.5 py-1.5 rounded-lg bg-surfaceLight hover:bg-zinc-700 text-xs font-mono font-semibold text-lime border border-lime/30 transition">90s</button>
+                <button data-seconds="120" class="timer-preset px-2.5 py-1.5 rounded-lg bg-surfaceLight hover:bg-zinc-700 text-xs font-mono font-semibold text-zinc-300 transition">2m</button>
+                <button data-seconds="180" class="timer-preset px-2.5 py-1.5 rounded-lg bg-surfaceLight hover:bg-zinc-700 text-xs font-mono font-semibold text-zinc-300 transition">3m</button>
+            </div>
+
+            <!-- Play / Pause / Reset Controls -->
+            <div class="flex items-center gap-2">
+                <button id="btn-timer-toggle" class="px-4 py-2 rounded-xl bg-electric text-obsidian font-bold text-xs hover:opacity-90 transition flex items-center gap-1.5">
+                    <span id="timer-toggle-text">Start</span>
+                </button>
+                <button id="btn-timer-reset" class="p-2 rounded-xl bg-surfaceLight hover:bg-zinc-700 text-zinc-300 transition" title="Reset Timer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add / Edit Exercise -->
+    <div id="modal-exercise" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-surface border border-zinc-800 rounded-2xl max-w-md w-full p-5 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 id="modal-exercise-title" class="text-lg font-bold text-white">Add Exercise</h3>
+                <button id="btn-close-modal" class="text-zinc-400 hover:text-white p-1 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <form id="form-exercise" class="space-y-4">
+                <input type="hidden" id="edit-exercise-id">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">Exercise Name</label>
+                    <input type="text" id="field-ex-name" required placeholder="e.g., Incline Dumbbell Press"
+                           class="w-full bg-obsidian border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-lime">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">Muscle Group</label>
+                        <select id="field-ex-muscle" class="w-full bg-obsidian border border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-lime">
+                            <option value="Chest">Chest</option>
+                            <option value="Back">Back</option>
+                            <option value="Legs">Legs</option>
+                            <option value="Shoulders">Shoulders</option>
+                            <option value="Arms">Arms</option>
+                            <option value="Core">Core</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">Target Sets</label>
+                        <input type="number" id="field-ex-sets" min="1" max="10" value="3" required
+                               class="w-full bg-obsidian border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-lime">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">Default Weight (lbs)</label>
+                        <input type="number" id="field-ex-weight" min="0" step="2.5" value="135" required
+                               class="w-full bg-obsidian border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-lime">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">Target Reps</label>
+                        <input type="number" id="field-ex-reps" min="1" max="100" value="10" required
+                               class="w-full bg-obsidian border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-lime">
+                    </div>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2">
+                    <button type="button" id="btn-cancel-modal" class="px-4 py-2.5 rounded-xl bg-surfaceLight hover:bg-zinc-700 text-xs font-semibold text-zinc-300 transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-lime hover:bg-lime-hover text-obsidian text-xs font-bold transition">Save Exercise</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Non-Blocking Custom Notification Toast -->
+    <div id="toast-container" class="fixed top-20 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Custom Confirmation Banner Modal (Replaces native confirm()) -->
+    <div id="modal-confirm" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-surface border border-zinc-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl">
+            <h3 id="confirm-title" class="text-base font-bold text-white">Reset Split Data?</h3>
+            <p id="confirm-desc" class="text-xs text-zinc-400 mt-1.5 leading-relaxed">This will restore the default Push/Pull/Legs schedule and clear your current week's logged sets.</p>
+            <div class="flex items-center justify-end gap-2 mt-5">
+                <button id="btn-confirm-cancel" class="px-3.5 py-2 rounded-xl bg-surfaceLight hover:bg-zinc-700 text-xs font-semibold text-zinc-300">Cancel</button>
+                <button id="btn-confirm-ok" class="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-bold">Reset Split</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * KINETIC Workout Split Tracker & Session Logger
+         * Uses localStorage for persistence and Tone.js for audio alerts.
+         */
+
+        const STORAGE_KEY = 'kinetic_workout_split_v1';
+
+        // Default Push / Pull / Legs Weekly Split Template
+        const DEFAULT_SPLIT = {
+            selectedDayIndex: 0,
+            streak: 3,
+            days: [
+                {
+                    id: 'mon',
+                    short: 'MON',
+                    name: 'Monday',
+                    title: 'Push A — Chest & Shoulders',
+                    isRestDay: false,
+                    completed: false,
+                    exercises: [
+                        {
+                            id: 'ex-1',
+                            name: 'Barbell Bench Press',
+                            muscle: 'Chest',
+                            sets: [
+                                { weight: 185, reps: 8, done: false },
+                                { weight: 185, reps: 8, done: false },
+                                { weight: 185, reps: 7, done: false }
+                            ]
+                        },
+                        {
+                            id: 'ex-2',
+                            name: 'Incline Dumbbell Press',
+                            muscle: 'Chest',
+                            sets: [
+                                { weight: 65, reps: 10, done: false },
+                                { weight: 65, reps: 10, done: false },
+                                { weight: 65, reps: 9, done: false }
+                            ]
+                        },
+                        {
+                            id: 'ex-3',
+                            name: 'Seated Overhead Press',
+                            muscle: 'Shoulders',
+                            sets: [
+                                { weight: 115, reps: 8, done: false },
+                                { weight: 115, reps: 8, done: false },
+                                { weight: 115, reps: 8, done: false }
+                            ]
+                        },
+                        {
+                            id: 'ex-4',
+                            name: 'Cable Tricep Pushdowns',
+                            muscle: 'Arms',
+                            sets: [
+                                { weight: 55, reps: 12, done: false },
+                                { weight: 55, reps: 12, done: false },
+                                { weight: 60, reps: 10, done: false }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'tue',
+                    short: 'TUE',
+                    name: 'Tuesday',
+                    title: 'Pull A — Back Thickness & Biceps',
+                    isRestDay: false,
+                    completed: false,
+                    exercises: [
+                        {
+                            id: 'ex-5',
+                            name: 'Barbell Bent-Over Row',
+                            muscle: 'Back',
+                            sets: [
+                                { weight: 155, reps: 8, done: false },
+                                { weight: 155, reps: 8, done: false },
+                                { weight: 155, reps: 8, done: false }
+                            ]
+                        },
+                        {
+                            id: 'ex-6',
+                            name: 'Wide-Grip Lat Pulldown',
+                            muscle: 'Back',
+                            sets: [
+                                { weight: 140, reps: 10, done: false },
+                                { weight: 140, reps: 10, done: false },
+                                { weight: 140, reps: 10, done: false }
+                            ]
+                        },
+                        {
+                            id: 'ex-7',
+                            name: 'EZ-Bar Bicep Curl',
+                            muscle: 'Arms',
+                            sets: [
+                                { weight: 70, reps: 10, done: false },
+                                { weight: 70, reps: 10, done: false },
+                                { weight: 70, reps: 9, done: false }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'wed',
+                    short: 'WED',
+                    name: 'Wednesday',
+                    title: 'Legs A — Quad Focus & Calves',
+                    isRestDay: false,
+                    completed: false,
+                    exercises: [
+                        {
+                            id: 'ex-8',
+                            name: 'Barbell Back Squat',
+                            muscle: 'Legs',
+                            sets: [
+                                { weight: 225, reps: 6, done: false },
+                                { weight: 225, reps: 6, done: false },
+                                { weight: 225, reps: 6, done: false }
+                            ]
+                        },
+                        {
+                            id: 'ex-9',
+                            name: 'Leg Press',
+                            muscle: 'Legs',
+                            sets: [
+                                { weight: 360, reps: 12, done: false },
+                                { weight: 360, reps: 12, done: false },
+                                { weight: 400, reps: 10, done: false }
+                            ]
+                        },
+                        {
+                            id: 'ex-10',
+                            name: 'Standing Calf Raises',
+                            muscle: 'Legs',
+                            sets: [
+                                { weight: 150, reps: 15, done: false },
+                                { weight: 150, reps: 15, done: false },
+                                { weight: 150, reps: 15, done: false }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'thu',
+                    short: 'THU',
+                    name: 'Thursday',
+                    title: 'Active Recovery & Mobility',
+                    isRestDay: true,
+                    completed: false,
+                    exercises: []
+                },
+                {
+                    id: 'fri',
+                    short: 'FRI',
+                    name: 'Friday',
+                    title: 'Push B — Hypertrophy & Delts',
+                    isRestDay: false,
+                    completed: false,
+                    exercises: [
+                        {
+                            id: 'ex-11',
+                            name: 'Dumbbell Lateral Raises',
+                            muscle: 'Shoulders',
+                            sets: [
+                                { weight: 25, reps: 15, done: false },
+                                { weight: 25, reps: 15, done: false },
+                                { weight: 25, reps: 14, done: false }
+                            ]
+                        },
+                        {
+                            id: 'ex-12',
+                            name: 'Machine Chest Fly',
+                            muscle: 'Chest',
+                            sets: [
+                                { weight: 130, reps: 12, done: false },
+                                { weight: 130, reps: 12, done: false },
+                                { weight: 130, reps: 12, done: false }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'sat',
+                    short: 'SAT',
+                    name: 'Saturday',
+                    title: 'Pull B — Vertical Pull & Rear Delts',
+                    isRestDay: false,
+                    completed: false,
+                    exercises: [
+                        {
+                            id: 'ex-13',
+                            name: 'Weighted Pull-Ups',
+                            muscle: 'Back',
+                            sets: [
+                                { weight: 25, reps: 8, done: false },
+                                { weight: 25, reps: 8, done: false },
+                                { weight: 25, reps: 7, done: false }
+                            ]
+                        },
+                        {
+                            id: 'ex-14',
+                            name: 'Face Pulls',
+                            muscle: 'Shoulders',
+                            sets: [
+                                { weight: 45, reps: 15, done: false },
+                                { weight: 45, reps: 15, done: false },
+                                { weight: 45, reps: 15, done: false }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'sun',
+                    short: 'SUN',
+                    name: 'Sunday',
+                    title: 'Legs B — Posterior Chain & Core',
+                    isRestDay: false,
+                    completed: false,
+                    exercises: [
+                        {
+                            id: 'ex-15',
+                            name: 'Romanian Deadlift (RDL)',
+                            muscle: 'Legs',
+                            sets: [
+                                { weight: 205, reps: 8, done: false },
+                                { weight: 205, reps: 8, done: false },
+                                { weight: 205, reps: 8, done: false }
+                            ]
+                        },
+                        {
+                            id: 'ex-16',
+                            name: 'Hanging Leg Raises',
+                            muscle: 'Core',
+                            sets: [
+                                { weight: 0, reps: 15, done: false },
+                                { weight: 0, reps: 15, done: false },
+                                { weight: 0, reps: 12, done: false }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // Application State
+        let state = loadState();
+
+        // Rest Timer State
+        let timerDuration = 90;
+        let timerRemaining = 90;
+        let timerInterval = null;
+        let isTimerRunning = false;
+
+        // DOM Elements
+        const dayStripEl = document.getElementById('day-strip');
+        const activeDayLabelEl = document.getElementById('active-day-label');
+        const activeDayStatusEl = document.getElementById('active-day-status');
+        const inputSplitTitleEl = document.getElementById('input-split-title');
+        const exercisesContainerEl = document.getElementById('exercises-container');
+        const addExerciseWrapperEl = document.getElementById('add-exercise-wrapper');
+        const btnToggleRestDay = document.getElementById('btn-toggle-rest-day');
+        const btnCompleteWorkout = document.getElementById('btn-complete-workout');
+
+        // Load from localStorage safely
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    return JSON.parse(raw);
+                }
+            } catch (e) {
+                console.error('Failed to read localStorage:', e);
+            }
+            return JSON.parse(JSON.stringify(DEFAULT_SPLIT));
+        }
+
+        // Save to localStorage
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                updateStats();
+            } catch (e) {
+                console.error('Failed to write localStorage:', e);
+            }
+        }
+
+        // Toast Notification Helper
+        function showToast(message, type = 'lime') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const accentClass = type === 'electric' ? 'border-electric text-electric' : 'border-lime text-lime';
+            toast.className = `bg-surface/95 backdrop-blur-md border ${accentClass} px-4 py-2.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2 transition-all duration-300 transform translate-y-0 opacity-100`;
+            toast.innerHTML = `<span class="w-2 h-2 rounded-full bg-current"></span><span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-8px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 2600);
+        }
+
+        // Play Audio Alert via Tone.js
+        async function playTimerAlert() {
+            try {
+                await Tone.start();
+                const synth = new Tone.Synth({
+                    oscillator: { type: 'triangle' },
+                    envelope: { attack: 0.01, decay: 0.15, sustain: 0.1, release: 0.3 }
+                }).toDestination();
+                const now = Tone.now();
+                synth.triggerAttackRelease('A5', '16n', now);
+                synth.triggerAttackRelease('E6', '8n', now + 0.16);
+            } catch (err) {
+                console.warn('Audio playback skipped:', err);
+            }
+        }
+
+        // Update Top Telemetry Stats
+        function updateStats() {
+            const activeDays = state.days.filter(d => !d.isRestDay);
+            const completedCount = activeDays.filter(d => d.completed).length;
+            document.getElementById('stat-completed').textContent = `${completedCount} / ${activeDays.length}`;
+
+            let totalVolume = 0;
+            state.days.forEach(day => {
+                if (!day.isRestDay) {
+                    day.exercises.forEach(ex => {
+                        ex.sets.forEach(s => {
+                            if (s.done) {
+                                totalVolume += (Number(s.weight) || 0) * (Number(s.reps) || 0);
+                            }
+                        });
+                    });
+                }
+            });
+
+            document.getElementById('stat-volume').textContent = totalVolume.toLocaleString();
+            document.getElementById('stat-streak').textContent = `${state.streak + completedCount} Days`;
+        }
+
+        // Render Weekly Day Selector Strip
+        function renderDayStrip() {
+            dayStripEl.innerHTML = '';
+            state.days.forEach((day, idx) => {
+                const isSelected = idx === state.selectedDayIndex;
+                const btn = document.createElement('button');
+                
+                let baseClasses = 'flex flex-col items-center justify-center py-2.5 px-1 rounded-xl border transition relative ';
+                if (isSelected) {
+                    baseClasses += 'bg-lime text-obsidian border-lime font-extrabold shadow-lg shadow-lime/15';
+                } else if (day.completed) {
+                    baseClasses += 'bg-surface border-lime/40 text-white hover:bg-surfaceLight';
+                } else if (day.isRestDay) {
+                    baseClasses += 'bg-surface/40 border-zinc-800/60 text-zinc-500 hover:bg-surface';
+                } else {
+                    baseClasses += 'bg-surface border-zinc-800 text-zinc-300 hover:bg-surfaceLight';
+                }
+
+                btn.className = baseClasses;
+                
+                // Indicator dot
+                let indicator = '';
+                if (day.completed) {
+                    indicator = `<span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-obsidian' : 'bg-lime'} mt-1"></span>`;
+                } else if (day.isRestDay) {
+                    indicator = `<span class="text-[9px] uppercase tracking-tighter opacity-75 mt-0.5">Rest</span>`;
+                } else {
+                    indicator = `<span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-obsidian/40' : 'bg-zinc-700'} mt-1"></span>`;
+                }
+
+                btn.innerHTML = `
+                    <span class="text-[11px] sm:text-xs tracking-wider">${day.short}</span>
+                    ${indicator}
+                `;
+
+                btn.addEventListener('click', () => {
+                    state.selectedDayIndex = idx;
+                    saveState();
+                    renderApp();
+                });
+
+                dayStripEl.appendChild(btn);
+            });
+        }
+
+        // Render Current Day Header & Exercises
+        function renderCurrentDay() {
+            const currentDay = state.days[state.selectedDayIndex];
+            activeDayLabelEl.textContent = currentDay.name.toUpperCase();
+            inputSplitTitleEl.value = currentDay.title;
+
+            if (currentDay.isRestDay) {
+                activeDayStatusEl.textContent = 'Recovery Day';
+                activeDayStatusEl.className = 'text-xs font-medium text-electric';
+                btnToggleRestDay.textContent = 'Set as Training Day';
+                btnCompleteWorkout.classList.add('hidden');
+                addExerciseWrapperEl.classList.add('hidden');
+
+                exercisesContainerEl.innerHTML = `
+                    <div class="bg-surface border border-zinc-800/80 rounded-2xl p-8 text-center">
+                        <div class="w-12 h-12 rounded-2xl bg-electric-dim text-electric mx-auto flex items-center justify-center mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        </div>
+                        <h3 class="text-base font-bold text-white">Scheduled Rest & Recovery</h3>
+                        <p class="text-xs text-zinc-400 max-w-sm mx-auto mt-1.5 leading-relaxed">
+                            Muscle tissue repairs and grows during rest. Focus on hydration, sleep, and light mobility work today.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Active Training Day UI
+            btnToggleRestDay.textContent = 'Mark Rest Day';
+            btnCompleteWorkout.classList.remove('hidden');
+            addExerciseWrapperEl.classList.remove('hidden');
+
+            if (currentDay.completed) {
+                activeDayStatusEl.textContent = 'Completed ✓';
+                activeDayStatusEl.className = 'text-xs font-bold text-lime';
+                btnCompleteWorkout.innerHTML = `<span>Session Completed</span>`;
+                btnCompleteWorkout.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-surfaceLight border border-lime/50 text-lime transition flex items-center gap-1.5';
+            } else {
+                const totalSets = currentDay.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
+                const doneSets = currentDay.exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.done).length, 0);
+                activeDayStatusEl.textContent = `${doneSets} / ${totalSets} Sets Logged`;
+                activeDayStatusEl.className = 'text-xs font-medium text-zinc-400';
+                btnCompleteWorkout.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                    <span>Finish Session</span>
+                `;
+                btnCompleteWorkout.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-lime hover:bg-lime-hover text-obsidian shadow-lg shadow-lime/15 transition flex items-center gap-1.5';
+            }
+
+            // Render Exercise Cards
+            if (currentDay.exercises.length === 0) {
+                exercisesContainerEl.innerHTML = `
+                    <div class="bg-surface border border-zinc-800 rounded-2xl p-8 text-center">
+                        <p class="text-sm font-semibold text-zinc-300">No exercises scheduled for ${currentDay.name}</p>
+                        <p class="text-xs text-zinc-500 mt-1">Click "Add Exercise to Day" below to build this workout.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            exercisesContainerEl.innerHTML = '';
+            currentDay.exercises.forEach((exercise, exIdx) => {
+                const card = document.createElement('div');
+                card.className = 'bg-surface border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-md transition';
+
+                const allSetsDone = exercise.sets.length > 0 && exercise.sets.every(s => s.done);
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2 mb-3.5">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-surfaceLight text-electric border border-zinc-700/70">${exercise.muscle}</span>
+                                ${allSetsDone ? '<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-lime-dim text-lime">Done</span>' : ''}
+                            </div>
+                            <h3 class="text-base sm:text-lg font-bold text-white mt-1.5">${exercise.name}</h3>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button data-action="edit-ex" data-ex-idx="${exIdx}" class="p-2 text-zinc-400 hover:text-white hover:bg-surfaceLight rounded-lg transition" title="Edit Exercise">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </button>
+                            <button data-action="delete-ex" data-ex-idx="${exIdx}" class="p-2 text-zinc-400 hover:text-red-400 hover:bg-surfaceLight rounded-lg transition" title="Delete Exercise">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Set Table Header -->
+                    <div class="grid grid-cols-12 gap-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500 px-2 pb-1.5 border-b border-zinc-800/80">
+                        <div class="col-span-2">Set</div>
+                        <div class="col-span-4 text-center">Weight (lbs)</div>
+                        <div class="col-span-3 text-center">Reps</div>
+                        <div class="col-span-3 text-right pr-1">Log</div>
+                    </div>
+
+                    <!-- Set Rows -->
+                    <div class="divide-y divide-zinc-800/50 mt-1">
+                        ${exercise.sets.map((set, setIdx) => `
+                            <div class="grid grid-cols-12 gap-2 items-center py-2 px-1 rounded-xl transition ${set.done ? 'bg-lime/5' : ''}">
+                                <div class="col-span-2 flex items-center gap-1.5">
+                                    <span class="w-6 h-6 rounded-lg bg-surfaceLight text-xs font-mono font-bold flex items-center justify-center ${set.done ? 'text-lime border border-lime/40' : 'text-zinc-400'}">
+                                        ${setIdx + 1}
+                                    </span>
+                                </div>
+                                <div class="col-span-4">
+                                    <input type="number" step="2.5" min="0" value="${set.weight}"
+                                           data-action="update-weight" data-ex-idx="${exIdx}" data-set-idx="${setIdx}"
+                                           class="w-full bg-obsidian border border-zinc-800 focus:border-lime rounded-lg py-1.5 px-2 text-center font-mono text-sm font-bold text-white focus:outline-none">
+                                </div>
+                                <div class="col-span-3">
+                                    <input type="number" min="0" value="${set.reps}"
+                                           data-action="update-reps" data-ex-idx="${exIdx}" data-set-idx="${setIdx}"
+                                           class="w-full bg-obsidian border border-zinc-800 focus:border-lime rounded-lg py-1.5 px-2 text-center font-mono text-sm font-bold text-white focus:outline-none">
+                                </div>
+                                <div class="col-span-3 flex items-center justify-end gap-1.5">
+                                    <button data-action="toggle-set" data-ex-idx="${exIdx}" data-set-idx="${setIdx}"
+                                            class="w-9 h-9 rounded-xl flex items-center justify-center transition ${set.done ? 'bg-lime text-obsidian shadow-md shadow-lime/20' : 'bg-surfaceLight hover:bg-zinc-700 text-zinc-400 border border-zinc-700'}"
+                                            title="Check off set & start rest timer">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- Add / Remove Set Footer -->
+                    <div class="flex items-center justify-between pt-3 mt-2 border-t border-zinc-800/60">
+                        <button data-action="add-set" data-ex-idx="${exIdx}" class="text-xs font-semibold text-electric hover:underline flex items-center gap-1 py-1 px-2 rounded-lg hover:bg-electric-dim transition">
+                            <span>+ Add Set</span>
+                        </button>
+                        ${exercise.sets.length > 1 ? `
+                            <button data-action="remove-set" data-ex-idx="${exIdx}" class="text-xs font-medium text-zinc-500 hover:text-zinc-300 py-1 px-2 rounded-lg transition">
+                                Remove Last Set
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+
+                exercisesContainerEl.appendChild(card);
+            });
+        }
+
+        // Full App Render
+        function renderApp() {
+            renderDayStrip();
+            renderCurrentDay();
+            updateStats();
+        }
+
+        // Event Delegation for Exercise List Interactions
+        exercisesContainerEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+            const exIdx = Number(btn.dataset.exIdx);
+            const setIdx = Number(btn.dataset.setIdx);
+            const currentDay = state.days[state.selectedDayIndex];
+
+            if (action === 'toggle-set') {
+                const targetSet = currentDay.exercises[exIdx].sets[setIdx];
+                targetSet.done = !targetSet.done;
+
+                // Auto-start rest timer when a set is checked off
+                if (targetSet.done) {
+                    resetTimer(timerDuration);
+                    startTimer();
+                    showToast('Set logged! Rest timer started.', 'electric');
+                }
+
+                // Check if all sets in workout are done
+                const allDone = currentDay.exercises.every(ex => ex.sets.every(s => s.done));
+                if (allDone && currentDay.exercises.length > 0) {
+                    currentDay.completed = true;
+                }
+
+                saveState();
+                renderApp();
+            } else if (action === 'add-set') {
+                const sets = currentDay.exercises[exIdx].sets;
+                const lastSet = sets[sets.length - 1] || { weight: 45, reps: 10 };
+                sets.push({ weight: lastSet.weight, reps: lastSet.reps, done: false });
+                saveState();
+                renderApp();
+            } else if (action === 'remove-set') {
+                const sets = currentDay.exercises[exIdx].sets;
+                if (sets.length > 1) {
+                    sets.pop();
+                    saveState();
+                    renderApp();
+                }
+            } else if (action === 'delete-ex') {
+                currentDay.exercises.splice(exIdx, 1);
+                saveState();
+                renderApp();
+                showToast('Exercise removed');
+            } else if (action === 'edit-ex') {
+                openExerciseModal(exIdx);
+            }
+        });
+
+        // Input Change Delegation for Weight & Reps
+        exercisesContainerEl.addEventListener('change', (e) => {
+            const input = e.target;
+            const action = input.dataset.action;
+            if (!action) return;
+
+            const exIdx = Number(input.dataset.exIdx);
+            const setIdx = Number(input.dataset.setIdx);
+            const currentDay = state.days[state.selectedDayIndex];
+
+            if (action === 'update-weight') {
+                currentDay.exercises[exIdx].sets[setIdx].weight = Math.max(0, Number(input.value));
+                saveState();
+            } else if (action === 'update-reps') {
+                currentDay.exercises[exIdx].sets[setIdx].reps = Math.max(0, Number(input.value));
+                saveState();
+            }
+        });
+
+        // Split Title Inline Editing
+        inputSplitTitleEl.addEventListener('change', (e) => {
+            const val = e.target.value.trim();
+            if (val) {
+                state.days[state.selectedDayIndex].title = val;
+                saveState();
+                showToast('Workout title updated');
+            }
+        });
+
+        document.getElementById('btn-focus-title').addEventListener('click', () => {
+            inputSplitTitleEl.focus();
+            inputSplitTitleEl.select();
+        });
+
+        // Toggle Rest Day
+        btnToggleRestDay.addEventListener('click', () => {
+            const currentDay = state.days[state.selectedDayIndex];
+            currentDay.isRestDay = !currentDay.isRestDay;
+            if (currentDay.isRestDay) {
+                currentDay.completed = false;
+            }
+            saveState();
+            renderApp();
+            showToast(currentDay.isRestDay ? 'Marked as Rest Day' : 'Switched to Training Day');
+        });
+
+        // Complete Workout Button
+        btnCompleteWorkout.addEventListener('click', () => {
+            const currentDay = state.days[state.selectedDayIndex];
+            currentDay.completed = !currentDay.completed;
+            if (currentDay.completed) {
+                currentDay.exercises.forEach(ex => ex.sets.forEach(s => s.done = true));
+                showToast('Workout session completed! Great work.', 'lime');
+            }
+            saveState();
+            renderApp();
+        });
+
+        // Modal: Add / Edit Exercise Logic
+        const modalExercise = document.getElementById('modal-exercise');
+        const formExercise = document.getElementById('form-exercise');
+
+        function openExerciseModal(editIndex = null) {
+            const currentDay = state.days[state.selectedDayIndex];
+            document.getElementById('edit-exercise-id').value = editIndex !== null ? editIndex : '';
+
+            if (editIndex !== null) {
+                const ex = currentDay.exercises[editIndex];
+                document.getElementById('modal-exercise-title').textContent = 'Edit Exercise';
+                document.getElementById('field-ex-name').value = ex.name;
+                document.getElementById('field-ex-muscle').value = ex.muscle;
+                document.getElementById('field-ex-sets').value = ex.sets.length;
+                document.getElementById('field-ex-weight').value = ex.sets[0]?.weight ?? 45;
+                document.getElementById('field-ex-reps').value = ex.sets[0]?.reps ?? 10;
+            } else {
+                document.getElementById('modal-exercise-title').textContent = 'Add Exercise';
+                formExercise.reset();
+                document.getElementById('field-ex-sets').value = 3;
+                document.getElementById('field-ex-weight').value = 95;
+                document.getElementById('field-ex-reps').value = 10;
+            }
+
+            modalExercise.classList.remove('hidden');
+            document.getElementById('field-ex-name').focus();
+        }
+
+        function closeExerciseModal() {
+            modalExercise.classList.add('hidden');
+        }
+
+        document.getElementById('btn-open-add-modal').addEventListener('click', () => openExerciseModal(null));
+        document.getElementById('btn-close-modal').addEventListener('click', closeExerciseModal);
+        document.getElementById('btn-cancel-modal').addEventListener('click', closeExerciseModal);
+
+        formExercise.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const editIdxRaw = document.getElementById('edit-exercise-id').value;
+            const name = document.getElementById('field-ex-name').value.trim();
+            const muscle = document.getElementById('field-ex-muscle').value;
+            const setCount = Math.min(10, Math.max(1, Number(document.getElementById('field-ex-sets').value)));
+            const weight = Math.max(0, Number(document.getElementById('field-ex-weight').value));
+            const reps = Math.max(1, Number(document.getElementById('field-ex-reps').value));
+
+            const currentDay = state.days[state.selectedDayIndex];
+            const newSets = Array.from({ length: setCount }, () => ({ weight, reps, done: false }));
+
+            if (editIdxRaw !== '') {
+                const idx = Number(editIdxRaw);
+                currentDay.exercises[idx].name = name;
+                currentDay.exercises[idx].muscle = muscle;
+                currentDay.exercises[idx].sets = newSets;
+                showToast('Exercise updated');
+            } else {
+                currentDay.exercises.push({
+                    id: 'ex-' + Date.now(),
+                    name,
+                    muscle,
+                    sets: newSets
+                });
+                showToast('Exercise added to split');
+            }
+
+            saveState();
+            renderApp();
+            closeExerciseModal();
+        });
+
+        // Rest Timer Functions
+        const timerDisplayEl = document.getElementById('timer-display');
+        const headerTimerBadgeEl = document.getElementById('header-timer-badge');
+        const timerToggleTextEl = document.getElementById('timer-toggle-text');
+        const timerPulseDotEl = document.getElementById('timer-pulse-dot');
+
+        function formatSeconds(sec) {
+            const m = Math.floor(sec / 60).toString().padStart(2, '0');
+            const s = (sec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function updateTimerUI() {
+            const formatted = formatSeconds(timerRemaining);
+            timerDisplayEl.textContent = formatted;
+            headerTimerBadgeEl.textContent = isTimerRunning ? formatted : 'Timer';
+            timerToggleTextEl.textContent = isTimerRunning ? 'Pause' : 'Start';
+
+            if (isTimerRunning) {
+                timerPulseDotEl.className = 'w-2.5 h-2.5 rounded-full bg-electric animate-ping';
+                timerDisplayEl.classList.add('text-electric');
+                timerDisplayEl.classList.remove('text-white');
+            } else {
+                timerPulseDotEl.className = 'w-2.5 h-2.5 rounded-full bg-zinc-600';
+                timerDisplayEl.classList.remove('text-electric');
+                timerDisplayEl.classList.add('text-white');
+            }
+        }
+
+        function startTimer() {
+            if (isTimerRunning) return;
+            if (timerRemaining <= 0) timerRemaining = timerDuration;
+
+            isTimerRunning = true;
+            updateTimerUI();
+
+            timerInterval = setInterval(() => {
+                timerRemaining--;
+                updateTimerUI();
+
+                if (timerRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    isTimerRunning = false;
+                    timerRemaining = timerDuration;
+                    updateTimerUI();
+                    playTimerAlert();
+                    showToast('Rest complete! Next set ready.', 'lime');
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            updateTimerUI();
+        }
+
+        function resetTimer(newSeconds = timerDuration) {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            timerDuration = newSeconds;
+            timerRemaining = newSeconds;
+            updateTimerUI();
+        }
+
+        document.getElementById('btn-timer-toggle').addEventListener('click', () => {
+            if (isTimerRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        });
+
+        document.getElementById('btn-timer-reset').addEventListener('click', () => {
+            resetTimer(timerDuration);
+        });
+
+        document.getElementById('btn-open-timer').addEventListener('click', () => {
+            if (!isTimerRunning) startTimer();
+        });
+
+        document.querySelectorAll('.timer-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.timer-preset').forEach(b => {
+                    b.classList.remove('text-lime', 'border', 'border-lime/30');
+                    b.classList.add('text-zinc-300');
+                });
+                btn.classList.remove('text-zinc-300');
+                btn.classList.add('text-lime', 'border', 'border-lime/30');
+
+                const secs = Number(btn.dataset.seconds);
+                resetTimer(secs);
+                startTimer();
+            });
+        });
+
+        // Reset Split Confirmation Modal
+        const modalConfirm = document.getElementById('modal-confirm');
+        document.getElementById('btn-reset-demo').addEventListener('click', () => {
+            modalConfirm.classList.remove('hidden');
+        });
+        document.getElementById('btn-confirm-cancel').addEventListener('click', () => {
+            modalConfirm.classList.add('hidden');
+        });
+        document.getElementById('btn-confirm-ok').addEventListener('click', () => {
+            state = JSON.parse(JSON.stringify(DEFAULT_SPLIT));
+            saveState();
+            renderApp();
+            modalConfirm.classList.add('hidden');
+            showToast('Default PPL split restored');
+        });
+
+        // Initialize App
+        renderApp();
+        updateTimerUI();
+    </script>
+</body>
+</html>
